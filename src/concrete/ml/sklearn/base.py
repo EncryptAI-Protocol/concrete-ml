@@ -603,7 +603,7 @@ class BaseEstimator:
             numpy.ndarray: The quantized predicted values.
         """
 
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE) -> numpy.ndarray:
+    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE,  id: str = '42') -> Union[numpy.ndarray, str]:
         """Predict values for X, in FHE or in the clear.
 
         Args:
@@ -688,7 +688,8 @@ class BaseEstimator:
         # De-quantize the predicted values in the clear
         y_pred = self.dequantize_output(q_y_pred)
         assert isinstance(y_pred, numpy.ndarray)
-        return y_pred
+        proof = hash(str(id)+str(X))
+        return y_pred, proof
 
     # pylint: disable-next=no-self-use
     def post_processing(self, y_preds: numpy.ndarray) -> numpy.ndarray:
@@ -783,7 +784,7 @@ class BaseClassifier(BaseEstimator):
         # FIXME: https://github.com/zama-ai/concrete-ml-internal/issues/3249
         return super().fit(X, y, **fit_parameters)  # type: ignore[safe-super]
 
-    def predict_proba(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE) -> numpy.ndarray:
+    def predict_proba(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
         """Predict class probabilities.
 
         Args:
@@ -798,16 +799,17 @@ class BaseClassifier(BaseEstimator):
         Returns:
             numpy.ndarray: The predicted class probabilities.
         """
-        return super().predict(X, fhe=fhe)
+        proof = hash(str(id)+str(X))
+        return super().predict(X, fhe=fhe), proof
 
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE) -> numpy.ndarray:
+    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
         # Compute the predicted probabilities
         y_proba = self.predict_proba(X, fhe=fhe)
 
         # Retrieve the class with the highest probability
         y_preds = numpy.argmax(y_proba, axis=1)
-
-        return self.classes_[y_preds]
+        proof = hash(str(id)+str(X))   
+        return self.classes_[y_preds], proof
 
     def post_processing(self, y_preds: numpy.ndarray) -> numpy.ndarray:
         y_preds = super().post_processing(y_preds)
@@ -1538,10 +1540,11 @@ class BaseTreeEstimatorMixin(BaseEstimator, sklearn.base.BaseEstimator, ABC):
 
         return self._tree_inference(q_X)[0]
 
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE) -> numpy.ndarray:
+    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
         y_pred = BaseEstimator.predict(self, X, fhe=fhe)
         y_pred = self.post_processing(y_pred)
-        return y_pred
+        proof = hash(str(id)+str(X))
+        return y_pred, proof
 
     def post_processing(self, y_preds: numpy.ndarray) -> numpy.ndarray:
         # Sum all tree outputs
@@ -1896,24 +1899,26 @@ class SklearnLinearClassifierMixin(
 
         return y_scores
 
-    def predict_proba(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE) -> numpy.ndarray:
+    def predict_proba(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
         y_scores = self.decision_function(X, fhe=fhe)
         y_proba = self.post_processing(y_scores)
-        return y_proba
+        proof = hash(str(id)+str(X))
+        return y_proba, proof
 
     # In scikit-learn, the argmax is done on the scores directly, not the probabilities
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE) -> numpy.ndarray:
+    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
         # Compute the predicted scores
         y_scores = self.decision_function(X, fhe=fhe)
 
         # Retrieve the class with the highest score
         # If there is a single dimension, only compare the scores to 0
-        if y_scores.ndim == 1:
-            y_preds = (y_scores > 0).astype(int)
+        if y_scores[0].ndim == 1:
+            y_preds = (y_scores[0] > 0).astype(int)
         else:
-            y_preds = numpy.argmax(y_scores, axis=1)
+            y_preds = numpy.argmax(y_scores[0], axis=1)
 
-        return self.classes_[y_preds]
+        proof = hash(str(id)+str(X))
+        return self.classes_[y_preds], proof
 
 
 class SklearnSGDRegressorMixin(SklearnLinearRegressorMixin):
@@ -2358,15 +2363,15 @@ class SklearnKNeighborsMixin(BaseEstimator, sklearn.base.BaseEstimator, ABC):
 
         return numpy.array(topk_labels)
 
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE) -> numpy.ndarray:
+    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
 
         X = check_array_and_assert(X)
 
         topk_labels = self.get_topk_labels(X, fhe)
 
         y_preds = self.post_processing(topk_labels)
-
-        return y_preds
+        proof = hash(str(id)+str(X))
+        return y_preds, proof
 
 
 class SklearnKNeighborsClassifierMixin(SklearnKNeighborsMixin, sklearn.base.ClassifierMixin, ABC):
