@@ -603,7 +603,9 @@ class BaseEstimator:
             numpy.ndarray: The quantized predicted values.
         """
 
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE,  id: str = '42') -> Union[numpy.ndarray, str]:
+    def predict(self, X: Data, model:str, serialized_value: numpy.array, 
+                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+        
         """Predict values for X, in FHE or in the clear.
 
         Args:
@@ -618,6 +620,16 @@ class BaseEstimator:
         Returns:
             np.ndarray: The predicted values for X.
         """
+        # Compute the predicted scores
+        name = str(self.__class__())[:-2]
+        if name != model:
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
+        weights = self.__dict__['_q_weights']
+        if not (weights==serialized_value).all():
+            raise ValueError('You are being fooled! The model is not the selected one.')
+
+
         assert_true(
             FheMode.is_valid(fhe),
             "`fhe` mode is not supported. Expected one of 'disable' (resp. FheMode.DISABLE), "
@@ -688,7 +700,7 @@ class BaseEstimator:
         # De-quantize the predicted values in the clear
         y_pred = self.dequantize_output(q_y_pred)
         assert isinstance(y_pred, numpy.ndarray)
-        proof = hash(str(id)+str(X))
+        proof = hash(str(id)+str(X)+str(model))
         return y_pred, proof
 
     # pylint: disable-next=no-self-use
@@ -784,7 +796,8 @@ class BaseClassifier(BaseEstimator):
         # FIXME: https://github.com/zama-ai/concrete-ml-internal/issues/3249
         return super().fit(X, y, **fit_parameters)  # type: ignore[safe-super]
 
-    def predict_proba(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+    def predict_proba(self, X: Data, model:str, serialized_value: numpy.array, 
+                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
         """Predict class probabilities.
 
         Args:
@@ -799,16 +812,34 @@ class BaseClassifier(BaseEstimator):
         Returns:
             numpy.ndarray: The predicted class probabilities.
         """
-        proof = hash(str(id)+str(X))
+        name = str(self.__class__())[:-2]
+        if name != model:
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
+        weights = self.__dict__['_q_weights']
+        if not (weights==serialized_value).all():
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
+        proof = hash(str(id)+str(X)+str(model))
         return super().predict(X, fhe=fhe), proof
 
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+    def predict(self, X: Data, model:str, serialized_value: numpy.array, 
+                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
         # Compute the predicted probabilities
+
+        name = str(self.__class__())[:-2]
+        if name != model:
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
+        weights = self.__dict__['_q_weights']
+        if not (weights==serialized_value).all():
+            raise ValueError('You are being fooled! The model is not the selected one.')
+    
         y_proba = self.predict_proba(X, fhe=fhe)
 
         # Retrieve the class with the highest probability
         y_preds = numpy.argmax(y_proba, axis=1)
-        proof = hash(str(id)+str(X))   
+        proof = hash(str(id)+str(X)+str(model))   
         return self.classes_[y_preds], proof
 
     def post_processing(self, y_preds: numpy.ndarray) -> numpy.ndarray:
@@ -1540,10 +1571,19 @@ class BaseTreeEstimatorMixin(BaseEstimator, sklearn.base.BaseEstimator, ABC):
 
         return self._tree_inference(q_X)[0]
 
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+    def predict(self, X: Data, model:str, serialized_value: numpy.array, 
+                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+        name = str(self.__class__())[:-2]
+        if name != model:
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
+        weights = self.__dict__['_q_weights']
+        if not (weights==serialized_value).all():
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
         y_pred = BaseEstimator.predict(self, X, fhe=fhe)
         y_pred = self.post_processing(y_pred)
-        proof = hash(str(id)+str(X))
+        proof = hash(str(id)+str(X)+str(model))
         return y_pred, proof
 
     def post_processing(self, y_preds: numpy.ndarray) -> numpy.ndarray:
@@ -1899,15 +1939,34 @@ class SklearnLinearClassifierMixin(
 
         return y_scores
 
-    def predict_proba(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+    def predict_proba(self, X: Data, model:str, serialized_value: numpy.array, 
+                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+        # Compute the predicted scores
+        name = str(self.__class__())[:-2]
+        if name != model:
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
+        weights = self.__dict__['_q_weights']
+        if not (weights==serialized_value).all():
+            raise ValueError('You are being fooled! The model is not the selected one.')
+
         y_scores = self.decision_function(X, fhe=fhe)
         y_proba = self.post_processing(y_scores)
-        proof = hash(str(id)+str(X))
+        proof = hash(str(id)+str(X)+str(model))
         return y_proba, proof
 
     # In scikit-learn, the argmax is done on the scores directly, not the probabilities
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+    def predict(self, X: Data, model:str, serialized_value: numpy.array, 
+                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
         # Compute the predicted scores
+        name = str(self.__class__())[:-2]
+        if name != model:
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
+        weights = self.__dict__['_q_weights']
+        if not (weights==serialized_value).all():
+            raise ValueError('You are being fooled! The model is not the selected one.')
+
         y_scores = self.decision_function(X, fhe=fhe)
 
         # Retrieve the class with the highest score
@@ -1917,7 +1976,7 @@ class SklearnLinearClassifierMixin(
         else:
             y_preds = numpy.argmax(y_scores[0], axis=1)
 
-        proof = hash(str(id)+str(X))
+        proof = hash(str(id)+str(X)+str(model))
         return self.classes_[y_preds], proof
 
 
@@ -2363,14 +2422,24 @@ class SklearnKNeighborsMixin(BaseEstimator, sklearn.base.BaseEstimator, ABC):
 
         return numpy.array(topk_labels)
 
-    def predict(self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+    def predict(self, X: Data, model:str, serialized_value: numpy.array, 
+                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+        # Compute the predicted scores
+        name = str(self.__class__())[:-2]
+        if name != model:
+            raise ValueError('You are being fooled! The model is not the selected one.')
+        
+        weights = self.__dict__['_q_weights']
+        if not (weights==serialized_value).all():
+            raise ValueError('You are being fooled! The model is not the selected one.')
+
 
         X = check_array_and_assert(X)
 
         topk_labels = self.get_topk_labels(X, fhe)
 
         y_preds = self.post_processing(topk_labels)
-        proof = hash(str(id)+str(X))
+        proof = hash(str(id)+str(X)+str(model))
         return y_preds, proof
 
 
