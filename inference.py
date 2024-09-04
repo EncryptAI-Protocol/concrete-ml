@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 import sys
+import csv
 from pathlib import Path
 from src.concrete.ml.common.serialization.loaders import load
 
@@ -27,12 +28,16 @@ def main():
 
         with open(json_file, 'r') as j:
             contents = json.loads(j.read())
+        
+        with open(x_test_path, 'r') as f:
+            reader = csv.reader(f)
+            X_test_vals = list(reader)
 
         model_name = contents['type_name']
         serialized_value = np.array(contents['serialized_value']['_q_weights']['serialized_value'])
 
         # Load X_test from the file
-        X_test = np.load(x_test_path)  # Assuming X_test is stored as a NumPy array
+        X_test = np.load(X_test_vals)  
 
         # Load the model
         loaded_model = load_model(json_file)
