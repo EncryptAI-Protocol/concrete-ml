@@ -1917,7 +1917,8 @@ class SklearnLinearClassifierMixin(
         SklearnLinearModelMixin._clean_graph(self)
 
     def decision_function(
-        self, X: Data, fhe: Union[FheMode, str] = FheMode.DISABLE
+        self, X: Data, model:str, 
+        serialized_value: numpy.ndarray, fhe: Union[FheMode, str] = FheMode.DISABLE
     ) -> numpy.ndarray:
         """Predict confidence scores.
 
@@ -1935,7 +1936,7 @@ class SklearnLinearClassifierMixin(
         """
         # Here, we want to use SklearnLinearModelMixin's `predict` method as confidence scores are
         # the dot product's output values, without any post-processing
-        y_scores = SklearnLinearModelMixin.predict(self, X, fhe=fhe)
+        y_scores = SklearnLinearModelMixin.predict(self, X, model, serialized_value, fhe=fhe)
 
         return y_scores
 
@@ -1950,7 +1951,7 @@ class SklearnLinearClassifierMixin(
         if not (weights==serialized_value).all():
             raise ValueError('You are being fooled! The model is not the selected one.')
 
-        y_scores = self.decision_function(X, fhe=fhe)
+        y_scores = self.decision_function(X, model, serialized_value, fhe=fhe)
         y_proba = self.post_processing(y_scores)
         proof = hash(str(id)+str(X)+str(model))
         return y_proba, proof
@@ -1967,7 +1968,7 @@ class SklearnLinearClassifierMixin(
         if not (weights==serialized_value).all():
             raise ValueError('You are being fooled! The model is not the selected one.')
 
-        y_scores = self.decision_function(X, fhe=fhe)
+        y_scores = self.decision_function(X, model, serialized_value, fhe=fhe)
 
         # Retrieve the class with the highest score
         # If there is a single dimension, only compare the scores to 0

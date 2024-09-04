@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+import sys
 from pathlib import Path
 from src.concrete.ml.common.serialization.loaders import load
 
@@ -15,14 +16,14 @@ def predict_with_model(loaded_model, X_test, model_name, serialized_value, id):
         )
         return y_pred_fhe_loaded, proof
     except Exception as e:
-        raise ValueError(f"Error: {str(e)}")
-
+        raise ValueError(f"Error during prediction: {str(e)}")
 
 def main():
     try:
-        # Get the file name and ID from environment variables
-        json_file = os.getenv('MODEL_FILE')
-        id = os.getenv('PREDICTION_ID', '1234')
+        # Get the file name, ID, and X_test from command-line arguments
+        json_file = sys.argv[1]  # Path to model JSON file
+        id = sys.argv[2]  # ID
+        x_test_path = sys.argv[3]  # Path to X_test file
 
         with open(json_file, 'r') as j:
             contents = json.loads(j.read())
@@ -30,11 +31,11 @@ def main():
         model_name = contents['type_name']
         serialized_value = np.array(contents['serialized_value']['_q_weights']['serialized_value'])
 
+        # Load X_test from the file
+        X_test = np.load(x_test_path)  # Assuming X_test is stored as a NumPy array
+
         # Load the model
         loaded_model = load_model(json_file)
-
-        # Assume X_test is passed, loaded, or predefined somewhere
-        X_test = np.array([...])  # Replace with actual test data
 
         # Make predictions
         y_pred_fhe_loaded, proof = predict_with_model(
