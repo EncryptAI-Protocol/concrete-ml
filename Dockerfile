@@ -1,5 +1,5 @@
 # Use a lightweight Python base image
-FROM python:3.9-slim
+FROM python:3.9.6
 
 # Set the working directory in the container
 WORKDIR /app
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/EncryptAI-Protocol/concrete-ml.git --depth=1 /app/src
 
 # Set the PYTHONPATH environment variable
-ENV PYTHONPATH="/app/src:${PYTHONPATH}"
+#ENV PYTHONPATH="/app/src:${PYTHONPATH}"
 
 # Install the Python dependencies
 COPY requirements.txt /app/requirements.txt
