@@ -1,5 +1,6 @@
 # Use a lightweight Python base image
-FROM python:3.9.6
+#FROM python:3.9.6
+FROM zamafhe/concrete-python:v2.4.0
 
 # Set the working directory in the container
 WORKDIR /app
@@ -7,15 +8,20 @@ WORKDIR /app
 # Install Git to clone the repository
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip before installing other packages
+RUN python -m pip install --upgrade pip
+
 # Clone the repository that contains the src.concrete.ml package
-RUN git clone https://github.com/EncryptAI-Protocol/concrete-ml.git --depth=1 /app/src
+#RUN git clone https://github.com/EncryptAI-Protocol/concrete-ml.git --depth=1 /app/src
+# Copy your local repository files into the container (assumes you cloned it locally)
+COPY ./ /app/src
 
 # Set the PYTHONPATH environment variable
-#ENV PYTHONPATH="/app/src:${PYTHONPATH}"
+ENV PYTHONPATH="/app/src:${PYTHONPATH}"
 
 # Install the Python dependencies
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+#COPY requirements.txt /app/requirements.txt
+#RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the inference script
 COPY inference.py /app/inference.py
