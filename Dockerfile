@@ -1,4 +1,4 @@
-FROM python:3.10.6-slim
+FROM zamafhe/concrete-ml:latest
 
 # Set the working directory in the container
 WORKDIR /app
@@ -7,8 +7,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip, install wheel, setuptools, and concrete-ml
-RUN pip install --upgrade pip wheel setuptools && \
-    pip install concrete-ml
+#RUN pip cache purge
+#RUN pip install -U pip wheel setuptools 
+#RUN pip install urllib3
+#RUN pip install --no-cache-dir concrete-ml
 
 # Copy your local repository files into the container
 COPY ./ /app/src
