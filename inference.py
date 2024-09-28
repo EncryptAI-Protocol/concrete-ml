@@ -10,10 +10,10 @@ def load_model(model_path):
     with open(model_path, 'r') as f:
         return load(f)
 
-def predict_with_model(loaded_model, X_test, model_name, serialized_value, id):
+def predict_with_model(loaded_model, X_test, model_name, serialized_value, model_id):
     try:
         y_pred_fhe_loaded, proof = loaded_model.predict(
-            X_test, model_name, serialized_value, fhe="execute", id=id
+            X_test, model_name, serialized_value, model_id, fhe="execute"
         )
         return y_pred_fhe_loaded, proof
     except Exception as e:
@@ -23,28 +23,25 @@ def main():
     try:
         # Get the file name, ID, and X_test from command-line arguments
         json_file = sys.argv[1]  # Path to model JSON file
-        id = sys.argv[2]  # ID
+        model_id = sys.argv[2]  # ID
         x_test_path = sys.argv[3]  # Path to X_test file
 
         with open(json_file, 'r') as j:
             contents = json.loads(j.read())
         
-        with open(x_test_path, 'r') as f:
-            reader = csv.reader(f)
-            X_test_vals = list(reader)
-
         model_name = contents['type_name']
         serialized_value = np.array(contents['serialized_value']['_q_weights']['serialized_value'])
+        X_train = np.loadtxt('x_train.csv', delimiter=',')  
 
         # Load X_test from the file
-        X_test = np.load(X_test_vals)  
+        X_test = np.loadtxt(x_test_path, delimiter=',')  
 
         # Load the model
         loaded_model = load_model(json_file)
-
+        loaded_model.compile(X_train)
         # Make predictions
         y_pred_fhe_loaded, proof = predict_with_model(
-            loaded_model, X_test, model_name, serialized_value, id
+            loaded_model, X_test, model_name, serialized_value, model_id
         )
 
         # Output the result

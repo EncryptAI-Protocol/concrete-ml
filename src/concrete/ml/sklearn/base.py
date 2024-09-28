@@ -15,6 +15,8 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, TextIO, Type, Union
 
+import hashlib
+
 import brevitas.nn as qnn
 
 # pylint: disable-next=ungrouped-imports
@@ -604,7 +606,7 @@ class BaseEstimator:
         """
 
     def predict(self, X: Data, model:str, serialized_value: numpy.array, 
-                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+                model_id: str, fhe: Union[FheMode, str] = FheMode.DISABLE) -> Union[numpy.ndarray, str]:
         
         """Predict values for X, in FHE or in the clear.
 
@@ -700,7 +702,12 @@ class BaseEstimator:
         # De-quantize the predicted values in the clear
         y_pred = self.dequantize_output(q_y_pred)
         assert isinstance(y_pred, numpy.ndarray)
-        proof = hash(str(id)+str(X)+str(model))
+
+        proof_str = str(model_id) + str(X) + str(model)
+        proof_hash = hashlib.sha256()
+        proof_hash.update(proof_str.encode('utf-8'))
+        proof = proof_hash.hexdigest()
+        
         return y_pred, proof
 
     # pylint: disable-next=no-self-use
@@ -797,7 +804,7 @@ class BaseClassifier(BaseEstimator):
         return super().fit(X, y, **fit_parameters)  # type: ignore[safe-super]
 
     def predict_proba(self, X: Data, model:str, serialized_value: numpy.array, 
-                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+                      model_id: str, fhe: Union[FheMode, str] = FheMode.DISABLE) -> Union[numpy.ndarray, str]:
         """Predict class probabilities.
 
         Args:
@@ -820,11 +827,15 @@ class BaseClassifier(BaseEstimator):
         if not (weights==serialized_value).all():
             raise ValueError('You are being fooled! The model is not the selected one.')
         
-        proof = hash(str(id)+str(X)+str(model))
+        proof_str = str(model_id) + str(X) + str(model)
+        proof_hash = hashlib.sha256()
+        proof_hash.update(proof_str.encode('utf-8'))
+        proof = proof_hash.hexdigest()
+
         return super().predict(X, fhe=fhe), proof
 
     def predict(self, X: Data, model:str, serialized_value: numpy.array, 
-                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+                model_id: str, fhe: Union[FheMode, str] = FheMode.DISABLE) -> Union[numpy.ndarray, str]:
         # Compute the predicted probabilities
 
         name = str(self.__class__())[:-2]
@@ -839,7 +850,12 @@ class BaseClassifier(BaseEstimator):
 
         # Retrieve the class with the highest probability
         y_preds = numpy.argmax(y_proba, axis=1)
-        proof = hash(str(id)+str(X)+str(model))   
+
+        proof_str = str(model_id) + str(X) + str(model)
+        proof_hash = hashlib.sha256()
+        proof_hash.update(proof_str.encode('utf-8'))
+        proof = proof_hash.hexdigest()
+
         return self.classes_[y_preds], proof
 
     def post_processing(self, y_preds: numpy.ndarray) -> numpy.ndarray:
@@ -1572,7 +1588,7 @@ class BaseTreeEstimatorMixin(BaseEstimator, sklearn.base.BaseEstimator, ABC):
         return self._tree_inference(q_X)[0]
 
     def predict(self, X: Data, model:str, serialized_value: numpy.array, 
-                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+                model_id: str, fhe: Union[FheMode, str] = FheMode.DISABLE) -> Union[numpy.ndarray, str]:
         name = str(self.__class__())[:-2]
         if name != model:
             raise ValueError('You are being fooled! The model is not the selected one.')
@@ -1583,7 +1599,12 @@ class BaseTreeEstimatorMixin(BaseEstimator, sklearn.base.BaseEstimator, ABC):
         
         y_pred = BaseEstimator.predict(self, X, fhe=fhe)
         y_pred = self.post_processing(y_pred)
-        proof = hash(str(id)+str(X)+str(model))
+
+        proof_str = str(model_id) + str(X) + str(model)
+        proof_hash = hashlib.sha256()
+        proof_hash.update(proof_str.encode('utf-8'))
+        proof = proof_hash.hexdigest()
+
         return y_pred, proof
 
     def post_processing(self, y_preds: numpy.ndarray) -> numpy.ndarray:
@@ -1918,7 +1939,9 @@ class SklearnLinearClassifierMixin(
 
     def decision_function(
         self, X: Data, model:str, 
-        serialized_value: numpy.ndarray, fhe: Union[FheMode, str] = FheMode.DISABLE
+        serialized_value: numpy.ndarray, 
+        model_id: str, 
+        fhe: Union[FheMode, str] = FheMode.DISABLE
     ) -> numpy.ndarray:
         """Predict confidence scores.
 
@@ -1936,12 +1959,12 @@ class SklearnLinearClassifierMixin(
         """
         # Here, we want to use SklearnLinearModelMixin's `predict` method as confidence scores are
         # the dot product's output values, without any post-processing
-        y_scores = SklearnLinearModelMixin.predict(self, X, model, serialized_value, fhe=fhe)
+        y_scores = SklearnLinearModelMixin.predict(self, X, model, serialized_value, model_id, fhe=fhe)
 
         return y_scores
 
     def predict_proba(self, X: Data, model:str, serialized_value: numpy.array, 
-                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+                    model_id: str, fhe: Union[FheMode, str] = FheMode.DISABLE) -> Union[numpy.ndarray, str]:
         # Compute the predicted scores
         name = str(self.__class__())[:-2]
         if name != model:
@@ -1953,12 +1976,16 @@ class SklearnLinearClassifierMixin(
 
         y_scores = self.decision_function(X, model, serialized_value, fhe=fhe)
         y_proba = self.post_processing(y_scores)
-        proof = hash(str(id)+str(X)+str(model))
+
+        proof_str = str(model_id) + str(X) + str(model)
+        proof_hash = hashlib.sha256()
+        proof_hash.update(proof_str.encode('utf-8'))
+        proof = proof_hash.hexdigest()
         return y_proba, proof
 
     # In scikit-learn, the argmax is done on the scores directly, not the probabilities
     def predict(self, X: Data, model:str, serialized_value: numpy.array, 
-                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+                model_id: str, fhe: Union[FheMode, str] = FheMode.DISABLE) -> Union[numpy.ndarray, str]:
         # Compute the predicted scores
         name = str(self.__class__())[:-2]
         if name != model:
@@ -1968,7 +1995,7 @@ class SklearnLinearClassifierMixin(
         if not (weights==serialized_value).all():
             raise ValueError('You are being fooled! The model is not the selected one.')
 
-        y_scores = self.decision_function(X, model, serialized_value, fhe=fhe)
+        y_scores = self.decision_function(X, model, serialized_value, model_id, fhe=fhe)
 
         # Retrieve the class with the highest score
         # If there is a single dimension, only compare the scores to 0
@@ -1977,7 +2004,10 @@ class SklearnLinearClassifierMixin(
         else:
             y_preds = numpy.argmax(y_scores[0], axis=1)
 
-        proof = hash(str(id)+str(X)+str(model))
+        proof_str = str(model_id) + str(X) + str(model)
+        proof_hash = hashlib.sha256()
+        proof_hash.update(proof_str.encode('utf-8'))
+        proof = proof_hash.hexdigest()
         return self.classes_[y_preds], proof
 
 
@@ -2424,7 +2454,7 @@ class SklearnKNeighborsMixin(BaseEstimator, sklearn.base.BaseEstimator, ABC):
         return numpy.array(topk_labels)
 
     def predict(self, X: Data, model:str, serialized_value: numpy.array, 
-                fhe: Union[FheMode, str] = FheMode.DISABLE, id: str = '42') -> Union[numpy.ndarray, str]:
+                model_id: str, fhe: Union[FheMode, str] = FheMode.DISABLE) -> Union[numpy.ndarray, str]:
         # Compute the predicted scores
         name = str(self.__class__())[:-2]
         if name != model:
@@ -2440,7 +2470,11 @@ class SklearnKNeighborsMixin(BaseEstimator, sklearn.base.BaseEstimator, ABC):
         topk_labels = self.get_topk_labels(X, fhe)
 
         y_preds = self.post_processing(topk_labels)
-        proof = hash(str(id)+str(X)+str(model))
+
+        proof_str = str(model_id) + str(X) + str(model)
+        proof_hash = hashlib.sha256()
+        proof_hash.update(proof_str.encode('utf-8'))
+        proof = proof_hash.hexdigest()
         return y_preds, proof
 
 
