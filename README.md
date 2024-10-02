@@ -22,6 +22,11 @@
 
 ## About
 
+## Command to run the Docker Image
+```console 
+docker run -v $(pwd)/logistic_regression_model.json:/app/logistic_regression_model.json -v $(pwd)/x_test.csv:/app/x_test.csv inference_image /app/logistic_regression_model.json 1234 /app/x_test.csv
+```
+
 ### What is Concrete ML
 
 **Concrete ML** is a Privacy-Preserving Machine Learning (PPML) open-source set of tools built on top of [Concrete](https://github.com/zama-ai/concrete) by [Zama](https://github.com/zama-ai).
