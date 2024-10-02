@@ -1,28 +1,32 @@
-FROM zamafhe/concrete-ml:latest
+# Use Ubuntu 22.04 as the base image
+FROM ubuntu:22.04
 
-# Set the working directory in the container
+# Set environment variables to prevent interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install required packages, including git and Python 3.10.6
+RUN apt-get update && \
+    apt-get install -y git python3.10 python3.10-venv python3-pip cmake protobuf-compiler && \
+    apt-get clean
+
+# Ensure pip is linked to Python 3.10 version and create necessary symbolic links
+RUN ln -sf /usr/bin/python3.10 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
+
+# Upgrade pip, wheel, and setuptools
+RUN pip install --upgrade pip wheel setuptools
+
+# Install concrete-ml
+RUN pip install concrete-ml
+
+# Set the working directory
 WORKDIR /app
 
-# Install system dependencies (if needed) and Git for cloning repositories
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Clone the repository containing the necessary files
+RUN git clone https://github.com/EncryptAI-Protocol/concrete-ml.git
 
-# Upgrade pip, install wheel, setuptools, and concrete-ml
-#RUN pip cache purge
-#RUN pip install -U pip wheel setuptools 
-#RUN pip install urllib3
-#RUN pip install --no-cache-dir concrete-ml
+# Add the src directory to the Python path
+ENV PYTHONPATH="${PYTHONPATH}:/app/concrete-ml/src"
 
-# Copy your local repository files into the container
-COPY ./ /app/src
-
-# Set the PYTHONPATH environment variable to include your src directory
-ENV PYTHONPATH="/app/src:${PYTHONPATH}"
-
-# Copy the inference script
-COPY inference.py /app/inference.py
-
-# Copy the necessary CSV files into the container (e.g., x_train.csv)
-COPY x_train.csv /app/x_train.csv
-
-# Set the entry point to run the inference script with argumentss
-ENTRYPOINT ["python", "/app/inference.py"]
+# Set the entrypoint to run inference.py
+ENTRYPOINT ["python", "/app/concrete-ml/inference.py"]

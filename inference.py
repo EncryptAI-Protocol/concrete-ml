@@ -31,7 +31,7 @@ def main():
         
         model_name = contents['type_name']
         serialized_value = np.array(contents['serialized_value']['_q_weights']['serialized_value'])
-        X_train = np.loadtxt('x_train.csv', delimiter=',')  
+        X_train = np.loadtxt('concrete-ml/x_train.csv', delimiter=',')  
 
         # Load X_test from the file
         X_test = np.loadtxt(x_test_path, delimiter=',')  
