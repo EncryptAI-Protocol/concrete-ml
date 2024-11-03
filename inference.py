@@ -40,9 +40,9 @@ def main():
         # Load X_test from the file
         X_test = np.loadtxt(x_test_path, delimiter=',')  
 
-        value_str = str(X_test) + str(model_name)
+        value_str = str(X_test.reshape(1,-1)) + str(model_name)
         value_hash = hashlib.sha256()
-        value_hash.update(value_hash.encode('utf-8'))
+        value_hash.update(value_str.encode('utf-8'))
         value = value_hash.hexdigest()
 
         # Load the model
