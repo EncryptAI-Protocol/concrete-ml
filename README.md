@@ -111,6 +111,13 @@ pip install concrete-ml
   <a href="#about" > ↑ Back to top </a>
 </p>
 
+The docker image:
+```bash
+docker build -t inference_image . --no-cache
+```
+```bash
+docker run -v $(pwd)/demo-data/linear_reg_multi_premium.json:/app/linear_reg_multi_premium.json -v $(pwd)/demo-data/X_premium.csv:/app/X_premium.csv -v $(pwd)/demo-data/x_test_premium.csv:/app/x_test_premium.csv inference_image /app/linear_reg_multi_premium.json X_premium.csv /app/x_test_premium.csv
+```
 ### A simple example
 
 Here is a simple example which is very close to scikit-learn for a logistic regression :
