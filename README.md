@@ -9,10 +9,7 @@ It simplifies the use of fully homomorphic encryption (FHE) for data scientists 
 
 Concrete ML is designed with ease of use in mind. Data scientists can use models with APIs that are close to the frameworks they already know well, while additional options to those models allow them to run inference or training on encrypted data with FHE. The Concrete ML model classes are similar to those in scikit-learn and it is also possible to convert PyTorch models to FHE.
 <br></br>
-## Command to run the Docker Image
-```console 
-docker run -v $(pwd)/logistic_regression_model.json:/app/logistic_regression_model.json -v $(pwd)/x_test.csv:/app/x_test.csv inference_image /app/logistic_regression_model.json 1234 /app/x_test.csv
-```
+
 
 ### Main features implemented
 
@@ -41,4 +38,4 @@ By leveraging FHE, Concrete ML can unlock a myriad of new use cases for machine 
 
 ### Demos
 
-Some demos have been implemented and can be found in the repo. They are a set of Jupyter Notebooks that showcase how models are trained and how predictions are returned. Demo data is under #demo-data
+Some demos have been implemented and can be found in the repo. They are a set of Jupyter Notebooks that showcase how models are trained and how predictions are returned. Demo data is under [#demo-data](https://github.com/EncryptAI-Protocol/concrete-ml/tree/main/demo-data)
