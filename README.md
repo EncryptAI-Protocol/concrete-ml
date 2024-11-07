@@ -39,3 +39,10 @@ By leveraging FHE, Concrete ML can unlock a myriad of new use cases for machine 
 ### Demos
 
 Some demos have been implemented and can be found in the repo. They are a set of Jupyter Notebooks that showcase how models are trained and how predictions are returned. Demo data is under [#demo-data](https://github.com/EncryptAI-Protocol/concrete-ml/tree/main/demo-data)
+
+The demos can be found on:
+- [Simple Insurance Demo](https://github.com/EncryptAI-Protocol/concrete-ml/blob/main/DemoInsuranceSimple.ipynb): A simple dataset to predict by using a linear regression. Prediction steps by using FHE.
+- [Premium Insurance Demo](https://github.com/EncryptAI-Protocol/concrete-ml/blob/main/DemoInsurancePremium.ipynb): A higher level multivariate linear regression demo. Prediction steps by using FHE.
+- [Encrypted Demo E2E](https://github.com/EncryptAI-Protocol/concrete-ml/blob/main/encrypted_demo.ipynb): A classifier that uses the SDG model to predict on breast cancer. Training and Inference using FHE.
+- [Inference Script](https://github.com/EncryptAI-Protocol/concrete-ml/blob/main/inference.py): The script used to run the inferences.
+- [Dockerfile](https://github.com/EncryptAI-Protocol/concrete-ml/blob/main/Dockerfile): The Docker Image
